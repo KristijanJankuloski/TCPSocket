@@ -4,8 +4,6 @@
 
 #pragma comment (lib, "ws2_32.lib")
 
-using namespace std;
-
 int main() {
 	// INIT WINSOCK
 	WSADATA wsData;
@@ -14,14 +12,14 @@ int main() {
 
 	int wsOk = WSAStartup(version, &wsData);
 	if (wsOk != 0) {
-		cerr << "Cannot initialize winsock" << endl;
+		std::cerr << "Cannot initialize winsock" << std::endl;
 		return -1;
 	}
 
 	// CREATE SOCKET
 	SOCKET listening = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (listening == INVALID_SOCKET) {
-		cerr << "Cannot create socket" << endl;
+		std::cerr << "Cannot create socket" << std::endl;
 		return -1;
 	}
 
@@ -41,7 +39,7 @@ int main() {
 	int clientSize = sizeof(client);
 	SOCKET clientSocket = accept(listening, (sockaddr*)&client, &clientSize);
 	if (clientSocket == INVALID_SOCKET) {
-		cerr << "Cannot create client" << endl;
+		std::cerr << "Cannot create client" << std::endl;
 		return -1;
 	}
 
@@ -51,30 +49,28 @@ int main() {
 	ZeroMemory(service, NI_MAXHOST);
 
 	if (getnameinfo((sockaddr*)&client, sizeof(client), host, NI_MAXHOST, service, NI_MAXHOST, 0) == 0) {
-		cout << host << " connected on port " << service << endl;
+		std::cout << host << " connected on port " << service << std::endl;
 	}
 	else {
 		inet_ntop(AF_INET, &client.sin_addr, host, NI_MAXHOST);
-		cout << host << " connected on port " << ntohs(client.sin_port) << endl;
+		std::cout << host << " connected on port " << ntohs(client.sin_port) << std::endl;
 	}
 
 	// WHILE LOOP
-	char buffer[30720];
+	char *buffer = (char*) malloc(BUFFER_SIZE * sizeof(char));
 	while (true) {
-		ZeroMemory(buffer, BUFFER_SIZE);
-
 		int bytesRecieved = recv(clientSocket, buffer, BUFFER_SIZE, 0);
 		if (bytesRecieved == SOCKET_ERROR) {
-			std::cerr << "Error in revc()" << endl;
+			std::cerr << "Error in revc()" << std::endl;
 			break;
 		}
 		if (bytesRecieved == 0) {
-			std::cout << "Client disconnected " << endl;
+			std::cout << "Client disconnected " << std::endl;
 			break;
 		}
 
-		string serverMessage = "HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: ";
-		string responseBody = "{\"message\": \"Hello world\"}";
+		std::string serverMessage = "HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: ";
+		std::string responseBody = "{\"message\": \"Hello world\"}";
 
 		serverMessage.append(std::to_string(responseBody.size()));
 		serverMessage.append("\n\n");
@@ -85,13 +81,14 @@ int main() {
 		while (totalBytesSent < serverMessage.size()) {
 			bytesSent = send(clientSocket, serverMessage.c_str(), serverMessage.size(), 0);
 			if (bytesSent < 0) {
-				cerr << "Could not send response" << endl;
+				std::cerr << "Could not send response" << std::endl;
 			}
 			totalBytesSent += bytesSent;
 		}
 	}
 
 	// CLOSE SOCKET
+	free(buffer);
 	closesocket(clientSocket);
 	closesocket(listening);
 	WSACleanup();
